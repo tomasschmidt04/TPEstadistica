@@ -1,0 +1,47 @@
+---
+title: "TP final estadistica"
+author: "Giancarlo Moroni"
+date: "2024-11-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Ejercicio 1
+
+```{r}
+print(class(c(T,F)))
+print(class(c(T,F,1)))
+print(class(c(T,F, 1, "1")))
+```
+Lo que sucede es para guardar en una estructura que tiene que tener mismo valor, intenta castear los elementos del menos generico, en este caso los booleanos, al mas generico que es el character. Entonces en estos casos:
+1. c(T,F) como son del mismo tipo, guarda a los valores en una lista del tipo logical.
+2. c(T,F,1) en este caso, hay dos clases distintas, numeric y logical, y como logical puede ser casteada a numeric, entonces T es 1 y F es 0 es terminos de numeric.
+3. c(T,F, 1, "1")  en este caso character es la clase mas generica para poder castear, entonces T -> 'True', F -> 'False' y el 1 es "1".
+
+#Ejercicio 2
+
+```{r}
+print(class(density))
+print(class(density(1:500)))
+```
+Vemos que las clases son distintas, la diferencia radica en que density es una funcion, pero si nosotros llamamos a la funcion con el vector 1:500, lo que estamos haciendo es viendo que clase tiene el resultado de llamar a la funcion density. En este caso el resultado son varios conjuntos de estructuras:
+
+```{r}
+str(density(1:500))
+```
+#Ejericio 3
+
+```{r}
+library(sloop)
+print(summary(s3_methods_generic("print")))
+print(head(s3_methods_generic("print")))
+```
+Vemos que el metodo print tiene para despachar 266 clases distintas
+
+```{r}
+print(s3_methods_generic("density"))
+methods(class="density")
+```

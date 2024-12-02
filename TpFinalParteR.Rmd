@@ -76,10 +76,10 @@ Esto sucede ya que cuando t.test, calcula los estadisticos, los guarda en una li
 #Ejercicio 10
 
 ```{r}
-todos_los_subconjuntos_de_4_elementos <- function() {
-  elements <- 1:4
+todos_los_subconjuntos_de_5_elementos <- function() {
+  elements <- 1:5
   subcojuntos <- list()
-  for (k in 0:4) {
+  for (k in 0:5) {
     subconjuntos_de_k <- combn(elements, k, simplify = FALSE)
     subcojuntos <- c(subcojuntos, subconjuntos_de_k)
   }
@@ -89,8 +89,8 @@ todos_los_subconjuntos_de_4_elementos <- function() {
 df <- data.frame(T = numeric(), S = numeric(), Cantidad = numeric(), Probabilidad = numeric())
 
 crear_tabla_observacion_6 <- function(){
-  subconjuntos <- todos_los_subconjuntos_de_4_elementos()
-  for (t in 0:10){
+  subconjuntos <- todos_los_subconjuntos_de_5_elementos()
+  for (t in 0:15){
     subconjuntos_que_suman_t <- c()
     cantidad <- 0
     for (subconjunto in subconjuntos){
@@ -104,7 +104,7 @@ crear_tabla_observacion_6 <- function(){
     df <- rbind(df, data.frame(T = t, 
                                S = paste(subconjuntos_que_suman_t, collapse = " "), 
                                Cantidad = cantidad, 
-                               Probabilidad = cantidad/16))
+                               Probabilidad = cantidad/32))
   }
   return(df)
 }
@@ -226,3 +226,19 @@ stopifnot(
 )
 
 ```
+
+```{r}
+set.seed(1234)
+n <- 15
+X <- rnorm(n)
+theta0 <- 1
+R_wilcox <- wilcox.test(X, alternative="two.sided", mu = theta0)
+mi_wilcox <- mi_wilcox_test(X, alternative="two.sided", mu = theta0)
+stopifnot(
+ mi_wilcox$statistic == R_wilcox$statistic,
+ mi_wilcox$p.value == R_wilcox$p.value,
+ mi_wilcox$alternative == R_wilcox$alternative,
+ class(mi_wilcox) == "htest"
+)
+```
+

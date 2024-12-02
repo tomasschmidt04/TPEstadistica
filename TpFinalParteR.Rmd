@@ -37,11 +37,192 @@ str(density(1:500))
 ```{r}
 library(sloop)
 print(summary(s3_methods_generic("print")))
-print(head(s3_methods_generic("print")))
 ```
-Vemos que el metodo print tiene para despachar 266 clases distintas
+Vemos que el metodo print tiene para despachar 266 clases distintas, pero esto tambien depende realmente de cuantos paquetes tenga instalados en mi version de R, podria suceder que algun compañero de TP corra esta misma celda y le de un valor distinto.
 
 ```{r}
-print(s3_methods_generic("density"))
-methods(class="density")
+metodos_de_density <- methods(class="density")
+metodos_de_density_sin_print <- metodos_de_density[metodos_de_density != "print"]
+print(length(metodos_de_density_sin_print))
+```
+Vemos que en este caso tenemos 6 metodos que tiene la clase density.
+
+#Pregunta 4
+
+```{r}
+mu <- 1
+sigma_sq <- 1
+n <- 30
+X <- rnorm(n, mean = mu, sd = sqrt(sigma_sq))
+
+mu0 <- 0
+alfa <- 0.05
+test_t <- t.test(
+  X,
+  alternative = "two.sided",
+  mu = mu0,
+  conf.level = 1 - alfa
+)
+print(unclass(test_t))
+```
+
+Al correr la funcion unclass sobre test_t lo que estamos haciendo es justamente remover la clase de esta estructura, por lo cual veremos reflajada la estructura de datos limpia, que vemos que es una lista:
+
+```{r}
+print(class(unclass(test_t)))
+```
+Esto sucede ya que cuando t.test, calcula los estadisticos, los guarda en una lista y luego le asigna la clase h.test, para que tenga un printeo mas declarativo que el que tiene normalmente una lista.
+
+#Ejercicio 10
+
+```{r}
+todos_los_subconjuntos_de_4_elementos <- function() {
+  elements <- 1:4
+  subcojuntos <- list()
+  for (k in 0:4) {
+    subconjuntos_de_k <- combn(elements, k, simplify = FALSE)
+    subcojuntos <- c(subcojuntos, subconjuntos_de_k)
+  }
+  return(subcojuntos)
+}
+
+df <- data.frame(T = numeric(), S = numeric(), Cantidad = numeric(), Probabilidad = numeric())
+
+crear_tabla_observacion_6 <- function(){
+  subconjuntos <- todos_los_subconjuntos_de_4_elementos()
+  for (t in 0:10){
+    subconjuntos_que_suman_t <- c()
+    cantidad <- 0
+    for (subconjunto in subconjuntos){
+      if (sum(subconjunto) == t){
+        subset_str <- if (length(sub) > 0) paste(subconjunto, collapse = ", ") else ""
+        string_del_subconjunto <- c("{", subset_str,"}")
+        subconjuntos_que_suman_t <- c(subconjuntos_que_suman_t, string_del_subconjunto)
+        cantidad <- cantidad + 1
+      }
+    }
+    df <- rbind(df, data.frame(T = t, 
+                               S = paste(subconjuntos_que_suman_t, collapse = " "), 
+                               Cantidad = cantidad, 
+                               Probabilidad = cantidad/16))
+  }
+  return(df)
+}
+print(crear_tabla_observacion_6())
+```
+
+#Pregunta 12
+
+```{r}
+particiones <- function(t, n){
+  if (n==0) {
+    if (t == 0) return(1)
+    return(0)
+  }
+  
+  if (t < 0 || t > n*(n+1)/2) return(0)
+  return(particiones(t, n-1) + particiones(t-n, n-1))
+}
+
+probabilidad <- function(t, n){
+  return(particiones(t, n)/(2**n))
+}
+
+stopifnot(
+  particiones(t=3, n=4) == 2,
+  particiones(t=24, n=12) == 67,
+  particiones(t=55, n=10) == 1,
+  particiones(t=45, n=30) == 1938
+)
+```
+
+#Pregunta 13
+
+```{r}
+
+# proba puntual 
+
+dTmas <- function(ts, n) {
+  res <- vector(mode = "numeric", length = length(ts))
+  for (j in seq_along(ts)) {
+    res[j] <- probabilidad(ts[j], n) 
+  }
+  return(res)
+}
+
+# acumulada 
+
+pTmas <- function(ts, n) {
+  res <- vector(mode = "numeric", length = length(ts))
+  for (j in seq_along(ts)) {
+    res[j] <- sum(dTmas((0:ts[j]), n))
+  }
+  return(res)
+}
+
+n <- 15
+t <- 34
+stopifnot(
+  dTmas(24, 12) == 67 / 2 ^ 12,
+  dTmas(0:10, 4) == c(1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 1) / 16,
+  sum(dTmas(0:21, 6)) == 1,
+  dTmas(0:2, 55) == 2 ^ -55,
+  dTmas(t, n) == dTmas(n * (n + 1) / 2 - t, n),
+  pTmas(t, n) == 1 - pTmas(n * (n + 1) / 2 - (t + 1), n)
+)
+```
+
+#Ejercicio 14
+
+```{r}
+library(stats)
+set.seed(125)
+n <- 15
+X <- rnorm(n)
+theta0 <- 2
+
+
+estadistico <- function(x){
+  signos <- ifelse(x >= 0, 1, -1)
+  modx <- abs(x)
+  rango <- rank(modx)
+  producto <- signos*rango
+  return(sum(producto))
+}
+
+mi_wilcox_test <- function(x, alternative, mu) {
+  alternative <- match.arg(alternative, c("two.sided", "less", "greater"))
+  x <- x - mu
+  tobs <- estadistico(x)
+  tMasObs <- (tobs/2) + n*(n+1)/4
+  if (alternative == 'greater'){
+    p.value <- 1 - pTmas(tMasObs - 1, length(x)) 
+  } else if (alternative == 'two.sided'){
+    p.value <- (1 - pTmas(abs(tobs)/2 + (n*(n+1)/4) - 1, length(x)))*2
+  } else {
+    p.value <- pTmas(tMasObs, length(x)) 
+  }
+  
+  resultado <- list(
+    statistic = tMasObs,
+    p.value = p.value,
+    alternative = alternative
+  )
+  
+  class(resultado) <- "htest"
+  return(resultado)
+}
+
+R_wilcox <- wilcox.test(X, alternative="two.sided", mu = theta0)
+mi_wilcox <- mi_wilcox_test(X, alternative="two.sided", mu = theta0)
+print(mi_wilcox$p.value)
+print(R_wilcox$p.value)
+
+stopifnot(
+  mi_wilcox$statistic == R_wilcox$statistic,
+  mi_wilcox$alternative == R_wilcox$alternative,
+  class(mi_wilcox) == "htest",
+  abs (mi_wilcox$p.value - R_wilcox$p.value) < 1E-6
+)
+
 ```

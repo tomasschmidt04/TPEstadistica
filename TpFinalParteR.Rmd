@@ -36,6 +36,7 @@ str(density(1:500))
 
 ```{r}
 library(sloop)
+
 print(summary(s3_methods_generic("print")))
 ```
 Vemos que el metodo print tiene para despachar 266 clases distintas, pero esto tambien depende realmente de cuantos paquetes tenga instalados en mi version de R, podria suceder que algun compañero de TP corra esta misma celda y le de un valor distinto.
@@ -240,5 +241,130 @@ stopifnot(
  mi_wilcox$alternative == R_wilcox$alternative,
  class(mi_wilcox) == "htest"
 )
+```
+#Ejercicio 18
+Primero vamos a calcular el valor de k* para maximizar la potencia del test. Por lo tanto vamos calcular cual es el cauntil 0.05 de la distribucion de T+. Aprovechandonos que la distribucion es discreta, vamos a ir calculando la P(T+ = t) del final al principio y sumando cada valor de probabilidad.Para  el t que la suma de las probas supere 0,05(t´), NO lo vamos a considerar y nos vamos a quedar con el t anterior  a él osea t´+1. Ese sera el cuantil 0,05 de la distribución. Luego este será el valor de k* que maximice la potencia por el "trade off"  entre el Error de tipo 1 y el error de tipo 2. Es decir mientras mas grande sea el valor del Error I, más chico será el Error II. Como la potencia del test bajo H1 es 1 - P(Error II), mientras mas grande es la P(Error I), mayor será a pontencia del Test bajo H1. 
+```{r}
+#Calculemos entonces el k*
+# Buscar k* desde el valor máximo posible hasta 1
+
+calculo_cuantil  <- function(n,alfa){
+  T_max <- n * (n + 1) / 2  # Valor máximo posible de T^+
+  suma_prob <- 0  # Suma acumulada de probabilidades
+  k <- 1
+  iteraciones <- 0 
+  for (t in T_max:0) {
+    #iteraciones <- iteraciones +  1
+    prob_t <- probabilidad(t, n)  # Probabilidad puntual para T^+ = t
+    suma_prob <- suma_prob + prob_t  # Acumular la probabilidad
+    if (suma_prob > alpha) {
+      k <- t + 1  # Guardar el valor k+1
+      break
+      #iteraciones<- iteraciones -1 
+    }
+    
+  }
+  return(k)
+}
+print(calculo_cuantil(12,0.05))
+print(iteraciones)
+print(k)
+lista<- seq(60,60)#Esto es P(T+ >= 61), asi que esta bien el k
+1- pTmas(lista,12)
+
+
+```
+
+Una vez calculado el k para n = 12 , ahora vamos a realizar los pasos que aparecen en el TP. Comenzamos generando las m muestra de Yi calcualmos el valor de T+(Yi). 
+
+```{r}
+calculo_estadisticoT_mas <- function(x){
+  signos <- ifelse(x >= 0, 1, 0)
+  modx <- abs(x) #No es necesario pq a las negativas no las vamos a considerar
+  rango <- rank(modx)
+  producto <- signos*rango
+  return(sum(producto))
+}
+m = 10000
+set.seed(1984)
+n <- 12
+theta1 <- 1
+sigma_sq <- 1
+vector_Ys = c()
+vector_Ys <- replicate(m, {
+  X <- rnorm(n, mean = theta1, sd = sqrt(sigma_sq))
+  calculo_estadisticoT_mas(X)
+}) #Esta forma es como un "for", pero en cada indice se guarda un valor del estadistico 
+k <- calculo_cuantil(12,0.05)
+vector_resultado <- ifelse(vector_Ys >= k, 1, 0) #IMPORTANTE EL IGUAL
+potencia_estimada = (1/m) * sum(vector_resultado)
+
+  
+
+
+
+```
+LA estimación de la potencia del test es de 0.9271. Con lo cual la  
+P(Error II) es 1-0.9144 = 0.0866 que es muy baja. Por lo tanto a partir de bootsrapt podemos decir que el test es bastante bueno?
+
+
+#Ejercicio 19
+Primero debemos computar el test t de Student para esta muestra. Bajo H0, nos queda ....(lo hago en el PDF??). Lo primero que hacemos es calcular el valor de k, donde el test debe ser de nivel 0.05
+```{r}
+k = qt(0.95,11)
+
+```
+Por lo tanto el test queda de la siguienta manera:....
+Ahora si podemos pasar a calcular la potencia. Las cuentas realizadas estan en el latex(Agregar cuentas de como llegar hasta poder calcular la potencia bajo tita_1)
+El cálculo de la potencia termina siendo:
+```{r}
+
+
+```
+Luego pasamos a computar el test de signos
+El test de signos va a tener una distribucion Bi(n,1/2) bajo H0, ya que si tita = 0, la distribucuion va a ser simetrica y centrada en 0, por lo que la probabilidad de ser mayor o menos que cero es la misma.
+Por lo tanto solo nos falta encontrar el k, tq la potencia del test bajo H0 es menor a 0.05
+```{r}
+
+calculo_cuantil_binomial  <- function(n,alfa){
+  T_max <- n   # Valor máximo posible de T^+
+  suma_prob <- 0  # Suma acumulada de probabilidades
+  k <- 1
+  iteraciones <- 0 
+  for (t in T_max:0) {
+    prob_t <- dbinom(t, n,0.5)  # Probabilidad puntual para T^+ = t
+    suma_prob <- suma_prob + prob_t  # Acumular la probabilidad
+    if (suma_prob > alpha) {
+      k <- t + 1  # Guardar el valor k+1
+      break
+    }
+    
+  }
+  return(k)
+}
+
+k = calculo_cuantil_binomial(12,0.05)
+
+```
+Ahora queda calcular la potencia del test via Bootstrap. 
+```{r}
+
+calculo_estadistico_signo <- function(x){
+  signos <- ifelse(x >= 0, 1, 0)
+  return(sum(signos))
+}
+m = 10000
+set.seed(1984)
+n <- 12
+theta1 <- 1
+sigma_sq <- 1
+vector_Ys = c()
+vector_Ys <- replicate(m, {
+  X <- rnorm(n, mean = theta1, sd = sqrt(sigma_sq))
+  calculo_estadistico_signo(X)
+}) #Esta forma es como un "for", pero en cada indice se guarda un valor del estadistico 
+k <- calculo_cuantil_binomial(12,0.05)
+vector_resultado_bin <- ifelse(vector_Ys >= k, 1, 0) #IMPORTANTE EL IGUAL
+potencia_estimada_bin = (1/m) * sum(vector_resultado_bin)
 ```
 
